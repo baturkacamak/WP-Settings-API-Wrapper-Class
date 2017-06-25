@@ -229,7 +229,7 @@ class HD_WP_Settings_API {
 				else
 					add_settings_section( $field['id'], $field['title'], array( $this, 'print_section' ), $this->options['menu_slug'] . '_' . $this->current_tab );
 
-			} elseif ( in_array( $field['type'], array( 'text', 'textarea', 'select', 'checkbox', 'radio', 'multiselect', 'multicheck', 'upload', 'color', 'editor' ) ) ) {
+			} else {
 
 				// Set Field Value
 				$field['value'] = get_option( $field['id'] );
