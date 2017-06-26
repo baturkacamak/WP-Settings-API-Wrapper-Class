@@ -98,16 +98,8 @@ class HD_HTML_Helper {
 
 		$input_html = '';
 
-		switch ( $field['type'] ) {
-			case 'text'       : $input_html .= $this->text_input( $field ); break;
-			case 'textarea'   : $input_html .= $this->textarea_input( $field ); break;
-			case 'select'     : $input_html .= $this->select_input( $field ); break;
-			case 'radio'      : $input_html .= $this->radio_input( $field ); break;
-			case 'checkbox'   : $input_html .= $this->checkbox_input( $field ); break;
-			case 'multicheck' : $input_html .= $this->multicheck_input( $field ); break;
-			case 'upload'     : $input_html .= $this->upload_input( $field ); break;
-			case 'color'      : $input_html .= $this->color_input( $field ); break;
-			case 'editor'     : $input_html .= $this->editor_input( $field ); break;
+		if ( is_callable( array( $this, $field['type'] . '_input' ) ) ) {
+			$input_html .= call_user_func( array( $this, $field['type'] . '_input' ), $field );
 		}
 
 		if ( $show_help && 'checkbox' !== $field['type'] )
@@ -131,6 +123,26 @@ class HD_HTML_Helper {
 	}
 
 	/**
+	 * Get HTML attributes from attributes array,
+	 *
+	 * @param array $attrs Attributes array.
+	 * @return string
+	 */
+	public function build_html_attrs( $attrs ) {
+		if ( empty( $attrs ) ) {
+			return '';
+		}
+
+		$html_attrs = array();
+
+		foreach ( $attrs as $key => $value ) {
+			$html_attrs[] = sprintf( '%s="%s"', esc_attr( $key ), esc_attr( $value ) );
+		}
+
+		return implode( ' ', $html_attrs );
+	}
+
+	/**
 	 * Print Text Input
 	 *
 	 * @param  array $field Input Options
@@ -145,6 +157,26 @@ class HD_HTML_Helper {
 			esc_attr( $field['value'] )
 		);
 
+	}
+
+	/**
+	 * Number Input
+	 *
+	 * @param  array $field Input Options
+	 * @return string
+	 */
+	private function number_input( $field ) {
+		$attrs = isset( $field['attrs'] ) ? (array) $field['attrs'] : array();
+		$attrs = wp_parse_args( $attrs, array(
+			'class' => 'small-text',
+		) );
+
+		$attrs['type'] = 'number';
+		$attrs['id'] = $field['id'];
+		$attrs['name'] = $field['id'];
+		$attrs['value'] = $field['value'];
+
+		return sprintf( '<input %s>', $this->build_html_attrs( $attrs ) );
 	}
 
 	/**
