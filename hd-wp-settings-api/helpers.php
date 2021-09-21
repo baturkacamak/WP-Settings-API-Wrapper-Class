@@ -1,26 +1,21 @@
 <?php
-/* A HTML Helper Class */
 
-if (!class_exists('HD_HTML_Helper')) :
+namespace Manalard;
+
+if (!class_exists('Manalard\Helpers')) :
     /**
-     * HTML Helper Class
+     * Class Helpers
      *
      * a Simple HTML Helper Class to generate form field.
-     *
-     * @version 1.0
+     * @version 1.0.1
      * @author  Harish Dasari
      * @link    http://github.com/harishdasari
+     * @contributor Batur Kacamak
+     * @link    https://github.com/baturkacamak
+     * @package Manalard
      */
-    class HD_HTML_Helper
+    class Helpers
     {
-
-        /**
-         * Constructor
-         */
-        public function __construct()
-        {
-        }
-
         /**
          * Returns the Form Table html
          *
@@ -29,14 +24,14 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return string             HTML string
          */
-        public function get_form_table($fields, $show_help = true)
+        public function getFormTable($fields, $show_help = true)
         {
             $form_table = '';
 
             $form_table .= '<table class="form-table">';
 
             foreach ((array)$fields as $field) {
-                $form_table .= $this->get_table_row($field, $show_help);
+                $form_table .= $this->getFormRow($field, $show_help);
             }
 
             $form_table .= '</table>';
@@ -52,9 +47,9 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return null
          */
-        public function display_form_table($fields, $show_help = true)
+        public function showFormTable($fields, $show_help = true)
         {
-            echo $this->get_form_table($fields, $show_help);
+            echo $this->getFormTable($fields, $show_help);
         }
 
         /**
@@ -65,11 +60,11 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return string
          */
-        public function get_table_row($field, $show_help)
+        public function getFormRow($field, $show_help)
         {
             $table_row = '<tr valign="top">';
             $table_row .= sprintf('<th><label for="%s">%s</label></th>', esc_attr($field['id']), $field['title']);
-            $table_row .= sprintf('<td>%s</td>', $this->get_field($field, $show_help));
+            $table_row .= sprintf('<td>%s</td>', $this->getField($field, $show_help));
             $table_row .= '</tr>';
 
             return apply_filters('hd_html_helper_table_row', $table_row, $field, $show_help);
@@ -83,7 +78,7 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return string             HTML string
          */
-        public function get_field($field, $show_help = true)
+        public function getField($field, $show_help = true)
         {
             $field_default = [
                 'title'    => '',
@@ -106,7 +101,7 @@ if (!class_exists('HD_HTML_Helper')) :
             }
 
             if ($show_help && 'checkbox' !== $field['type']) {
-                $input_html .= $this->help_text($field);
+                $input_html .= $this->getHelpText($field);
             }
 
             return apply_filters('hd_html_helper_input_field', $input_html, $field, $show_help);
@@ -120,9 +115,9 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return null
          */
-        public function display_field($field, $show_help = true)
+        public function displayField($field, $show_help = true)
         {
-            echo $this->get_field($field, $show_help);
+            echo $this->getField($field, $show_help);
         }
 
         /**
@@ -132,7 +127,7 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return string
          */
-        public function build_html_attrs($attrs)
+        public function generateHtmlAttrs($attrs)
         {
             if (empty($attrs)) {
                 return '';
@@ -154,7 +149,7 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return null
          */
-        private function text_input($field)
+        private function getTextInput($field)
         {
             return sprintf(
                 '<input type="text" name="%s" id="%s" value="%s" class="regular-text"/>',
@@ -171,7 +166,7 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return string
          */
-        private function number_input($field)
+        private function getNumberInput($field)
         {
             $attrs = isset($field['attrs']) ? (array)$field['attrs'] : [];
             $attrs = wp_parse_args(
@@ -186,7 +181,7 @@ if (!class_exists('HD_HTML_Helper')) :
             $attrs['name']  = $field['id'];
             $attrs['value'] = $field['value'];
 
-            return sprintf('<input %s>', $this->build_html_attrs($attrs));
+            return sprintf('<input %s>', $this->generateHtmlAttrs($attrs));
         }
 
         /**
@@ -196,7 +191,7 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return null
          */
-        private function textarea_input($field)
+        private function getTextareaInput($field)
         {
             return sprintf(
                 '<textarea name="%s" id="%s" rows="5" cols="40">%s</textarea>',
@@ -213,7 +208,7 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return null
          */
-        private function select_input($field)
+        private function getSelectInput($field)
         {
             $selected_value = $field['value'];
 
@@ -262,7 +257,7 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return null
          */
-        private function checkbox_input($field)
+        private function getCheckboxInput($field)
         {
             return sprintf(
                 '<label><input type="checkbox" name="%s" id="%s"%s> %s</label>',
@@ -280,7 +275,7 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return null
          */
-        private function radio_input($field)
+        private function getRadioInput($field)
         {
             $selected_value = $field['value'];
 
@@ -308,7 +303,7 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return null
          */
-        private function multicheck_input($field)
+        private function getMulticheckInput($field)
         {
             $selected_value = (array)$field['value'];
 
@@ -336,7 +331,7 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return null
          */
-        private function upload_input($field)
+        private function getUploadInput($field)
         {
             // dang! dang!! dang!!!
             // We require to enqueue Media Uploader Scripts and Styles
@@ -360,7 +355,7 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return null
          */
-        private function color_input($field)
+        private function getColorInput($field)
         {
             $default_color = empty($field['default']) ? '' : ' data-default-color="' . esc_attr(
                     $field['default']
@@ -382,7 +377,7 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return null
          */
-        private function editor_input($field)
+        private function showEditorInput($field)
         {
             $settings = [
                 'media_buttons' => false,
@@ -406,7 +401,7 @@ if (!class_exists('HD_HTML_Helper')) :
          *
          * @return (string|null)
          */
-        private function help_text($field)
+        private function getHelpText($field)
         {
             if (empty($field['desc'])) {
                 return '';
@@ -415,6 +410,6 @@ if (!class_exists('HD_HTML_Helper')) :
             return '<p class="description">' . wp_kses_data($field['desc']) . '</p>';
         }
 
-    } // End HD_HTML_Helper
+    } // End Helpers
 
 endif; // end class_exists check

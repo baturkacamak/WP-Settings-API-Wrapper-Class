@@ -1,10 +1,12 @@
 <?php
 /*
 Name: WordPress Settings API Wrapper Class
-URI: http://github.com/harishdasari
+URI: https://github.com/baturkacamak
 Description: A PHP Library for creating WordPress Option Pages with tabs using WordPress Settings API
 Author: Harish Dasari
 Author URI: http://twitter.com/harishdasari
+Contributor: Batur Kacamak
+Contributor URI: https://batur.info
 Version: 1.1
 License: GNU General Public License v2.0 or later
 License URI: http://www.opensource.org/licenses/gpl-license.php
@@ -30,17 +32,17 @@ License URI: http://www.opensource.org/licenses/gpl-license.php
 	WordPress Settings API Wrapper Class
  =================================================================================*/
 
-require_once('class-hd-html-helper.php');
+namespace Manalard;
 
-if (!class_exists('HD_WP_Settings_API')) :
+require_once('helpers.php');
+
+if (!class_exists('Manalard\SettingsAPI')) :
     /**
      * WordPress Settings API Wrapper Class
      *
      * @version 1.1
-     * @author  Harish Dasari
-     * @link    http://github.com/harishdasari
      */
-    class HD_WP_Settings_API
+    class SettingsAPI
     {
 
         /**
@@ -65,49 +67,49 @@ if (!class_exists('HD_WP_Settings_API')) :
          * Holds Section ID to addubg settings fields
          * @var string
          */
-        var $current_section = 'default';
+        var $currentSection = 'default';
 
         /**
          * Holds Tab ID to adding settings sections and settings fields
          * @var boolean/string
          */
-        var $current_tab = false;
+        var $currentTab = false;
 
         /**
          * Holds Active Tab ID
          * @var boolean/string
          */
-        var $active_tab = false;
+        var $activeTab = false;
 
         /**
          * Holds Current field data to adding settings field
          * @var mixed
          */
-        var $current_field = false;
+        var $currentField = false;
 
         /**
          * Holds Menu page $hook_suffix
          * @var boolean/string
          */
-        var $hook_suffix = false;
+        var $hookSuffix = false;
 
         /**
-         * Holds instance of HD_HTML_Helper class
+         * Holds instance of Manalard\Helpers class
          * @var object
          */
-        var $html_helper;
+        var $htmlHelper;
 
         /**
          * Holds Current Folder Path
          * @var string
          */
-        var $dir_path;
+        var $dirPath;
 
         /**
          * Holds Current Folder URI
          * @var string
          */
-        var $dir_uri;
+        var $dirUri;
 
         /**
          * Constructor
@@ -120,13 +122,13 @@ if (!class_exists('HD_WP_Settings_API')) :
         function __construct($options = [], $fields = [])
         {
             // Set directory path
-            $this->dir_path = str_replace('\\', '/', dirname(__FILE__));
+            $this->dirPath = str_replace('\\', '/', dirname(__FILE__));
 
             // Set directory uri
-            $this->dir_uri = trailingslashit(home_url()) . str_replace(
+            $this->dirUri = trailingslashit(home_url()) . str_replace(
                     str_replace('\\', '/', ABSPATH),
                     '',
-                    $this->dir_path
+                    $this->dirPath
                 );
 
             // Default page options
@@ -151,24 +153,30 @@ if (!class_exists('HD_WP_Settings_API')) :
 
             $this->fields = (array)$fields;
 
-            $this->html_helper = class_exists('HD_HTML_Helper') ? new HD_HTML_Helper : false;
+            $this->htmlHelper = class_exists('Manalard\Helpers') ? new Helpers() : false;
 
-            add_action('admin_menu', [$this, 'register_menu']);
-            add_action('admin_init', [$this, 'register_options']);
-            add_action('admin_enqueue_scripts', [$this, 'enqueue_styles_scripts']);
-            add_action('admin_notices', [$this, 'show_notices']);
+            $this->handle();
         }
+
+        public function handle()
+        {
+            add_action('admin_menu', [$this, 'registerMenu']);
+            add_action('admin_init', [$this, 'registerOptions']);
+            add_action('admin_enqueue_scripts', [$this, 'enqueueAdmin']);
+            add_action('admin_notices', [$this, 'showNotices']);
+        }
+
 
         /**
          * Register a New Menu Page
          *
-         * @return null
+         * @return void
          */
-        function register_menu()
+        public function registerMenu()
         {
             // Collect all tabs
             foreach ($this->fields as $field_setting => $field) {
-                if ('tab' == $field['type']) {
+                if ('tab' === $field['type']) {
                     $this->tabs[sanitize_title($field_setting)] = $field['title'];
                 }
             }
@@ -176,38 +184,38 @@ if (!class_exists('HD_WP_Settings_API')) :
             // Set active tab
             if (!empty($this->tabs)) {
                 if (isset($_GET['tab']) && array_key_exists($_GET['tab'], (array)$this->tabs)) {
-                    $this->active_tab = $_GET['tab'];
+                    $this->activeTab = $_GET['tab'];
                 } elseif (isset($_REQUEST[$this->options['menu_slug'] . '_active_tab']) && array_key_exists(
                         $_REQUEST[$this->options['menu_slug'] . '_active_tab'],
                         (array)$this->tabs
                     )) {
-                    $this->active_tab = $_REQUEST[$this->options['menu_slug'] . '_active_tab'];
+                    $this->activeTab = $_REQUEST[$this->options['menu_slug'] . '_active_tab'];
                 } else {
-                    $tab_keys         = array_keys((array)$this->tabs);
-                    $this->active_tab = reset($tab_keys);
+                    $tab_keys        = array_keys((array)$this->tabs);
+                    $this->activeTab = reset($tab_keys);
                 }
             }
 
             extract($this->options);
 
             if (empty($parent_slug)) {
-                $this->hook_suffix = add_menu_page(
+                $this->hookSuffix = add_menu_page(
                     $page_title,
                     $menu_title,
                     $capability,
                     $menu_slug,
-                    [$this, 'settings_page'],
+                    [$this, 'showSettingsPage'],
                     $icon,
                     $position
                 );
             } else {
-                $this->hook_suffix = add_submenu_page(
+                $this->hookSuffix = add_submenu_page(
                     $parent_slug,
                     $page_title,
                     $menu_title,
                     $capability,
                     $menu_slug,
-                    [$this, 'settings_page']
+                    [$this, 'showSettingsPage']
                 );
             }
         }
@@ -217,18 +225,18 @@ if (!class_exists('HD_WP_Settings_API')) :
          *
          * @param string $hook_suffix
          *
-         * @return null
+         * @return void
          */
-        function enqueue_styles_scripts($hook_suffix)
+        public function enqueueAdmin($hook_suffix)
         {
-            if ($this->hook_suffix !== $hook_suffix) {
+            if ($this->hookSuffix !== $hook_suffix) {
                 return;
             }
 
             wp_enqueue_style('wp-color-picker');
             wp_enqueue_script(
                 'hd-html-helper',
-                $this->dir_uri . '/js/admin.js',
+                $this->dirUri . '/js/admin.js',
                 ['jquery', 'wp-color-picker'],
                 null,
                 true
@@ -238,61 +246,61 @@ if (!class_exists('HD_WP_Settings_API')) :
         /**
          * Register Sections, Fields and Settings
          *
-         * @return mull
+         * @return void
          */
-        function register_options()
+        public function registerOptions()
         {
             foreach ($this->fields as $field_setting => $field) {
                 $field['id'] = $field_setting;
 
-                $this->current_field = $field;
+                $this->currentField = $field;
 
-                if ('tab' == $field['type']) {
-                    $this->current_tab     = $field['id'];
-                    $this->current_section = 'default';
-                } elseif ('section' == $field['type']) {
-                    $this->current_section = empty($field['id']) ? 'default' : $field['id'];
+                if ('tab' === $field['type']) {
+                    $this->currentTab     = $field['id'];
+                    $this->currentSection = 'default';
+                } elseif ('section' === $field['type']) {
+                    $this->currentSection = empty($field['id']) ? 'default' : $field['id'];
 
-                    if (empty($this->current_tab)) {
+                    if (empty($this->currentTab)) {
                         add_settings_section(
                             $field['id'],
                             $field['title'],
-                            [$this, 'print_section'],
+                            [$this, 'showSection'],
                             $this->options['menu_slug']
                         );
                     } else {
                         add_settings_section(
                             $field['id'],
                             $field['title'],
-                            [$this, 'print_section'],
-                            $this->options['menu_slug'] . '_' . $this->current_tab
+                            [$this, 'showSection'],
+                            $this->options['menu_slug'] . '_' . $this->currentTab
                         );
                     }
                 } else {
                     // Set Field Value
                     $field['value'] = get_option($field['id']);
 
-                    if (empty($this->current_tab)) {
+                    if (empty($this->currentTab)) {
                         add_settings_field(
                             $field['id'],
                             $field['title'],
-                            [$this->html_helper, 'display_field'],
+                            [$this->htmlHelper, 'display_field'],
                             $this->options['menu_slug'],
-                            $this->current_section,
+                            $this->currentSection,
                             $field
                         );
                     } else {
                         add_settings_field(
                             $field['id'],
                             $field['title'],
-                            [$this->html_helper, 'display_field'],
-                            $this->options['menu_slug'] . '_' . $this->current_tab,
-                            $this->current_section,
+                            [$this->htmlHelper, 'display_field'],
+                            $this->options['menu_slug'] . '_' . $this->currentTab,
+                            $this->currentSection,
                             $field
                         );
                     }
 
-                    if (empty($this->current_tab) || $this->current_tab == $this->active_tab) {
+                    if (empty($this->currentTab) || $this->currentTab === $this->activeTab) {
                         register_setting($this->options['menu_slug'], $field['id'], [$this, 'sanitize_setting']);
                     }
 
@@ -306,17 +314,17 @@ if (!class_exists('HD_WP_Settings_API')) :
         /**
          * Show Admin Notices
          *
-         * @return null
+         * @return void
          */
-        function show_notices()
+        public function showNotices()
         {
             global $parent_file;
 
-            if ('options-general.php' == $parent_file) {
+            if ('options-general.php' === $parent_file) {
                 return;
             }
 
-            if (isset($_GET['page']) && $_GET['page'] == $this->options['menu_slug']) {
+            if (isset($_GET['page']) && $_GET['page'] === $this->options['menu_slug']) {
                 settings_errors();
             }
         }
@@ -324,9 +332,9 @@ if (!class_exists('HD_WP_Settings_API')) :
         /**
          * Print Settings Page
          *
-         * @return null
+         * @return void
          */
-        function settings_page()
+        public function showSettingsPage()
         {
             ?>
             <div class="wrap <?php echo sanitize_html_class($this->options['menu_slug']); ?>">
@@ -341,7 +349,7 @@ if (!class_exists('HD_WP_Settings_API')) :
 
                     <?php do_action(
                         'hd_settings_api_page_before',
-                        $this->hook_suffix,
+                        $this->hookSuffix,
                         $this->options,
                         $this->fields
                     ); ?>
@@ -359,7 +367,7 @@ if (!class_exists('HD_WP_Settings_API')) :
                                 printf(
                                     '<a href="%s" class="nav-tab%s">%s</a>',
                                     add_query_arg(['page' => $this->options['menu_slug'], 'tab' => $tab_id]),
-                                    ($this->active_tab == $tab_id) ? ' nav-tab-active' : '',
+                                    ($this->activeTab === $tab_id) ? ' nav-tab-active' : '',
                                     esc_html($tab_name)
                                 );
                             }
@@ -368,37 +376,37 @@ if (!class_exists('HD_WP_Settings_API')) :
 
                         <?php do_action(
                             'hd_settings_api_tab_before',
-                            $this->hook_suffix,
-                            $this->active_tab,
+                            $this->hookSuffix,
+                            $this->activeTab,
                             $this->options,
                             $this->fields
                         ); ?>
 
                         <table class="form-table">
                             <?php do_settings_fields(
-                                $this->options['menu_slug'] . '_' . $this->active_tab,
+                                $this->options['menu_slug'] . '_' . $this->activeTab,
                                 'default'
                             ); ?>
                         </table>
 
-                        <?php do_settings_sections($this->options['menu_slug'] . '_' . $this->active_tab); ?>
+                        <?php do_settings_sections($this->options['menu_slug'] . '_' . $this->activeTab); ?>
 
                         <?php do_action(
                             'hd_settings_api_tab_after',
-                            $this->hook_suffix,
-                            $this->active_tab,
+                            $this->hookSuffix,
+                            $this->activeTab,
                             $this->options,
                             $this->fields
                         ); ?>
 
                         <input type="hidden"
                                name="<?php echo esc_attr($this->options['menu_slug'] . '_active_tab'); ?>"
-                               value="<?php echo esc_attr($this->active_tab); ?>"
+                               value="<?php echo esc_attr($this->activeTab); ?>"
                         />
 
                     <?php } ?>
 
-                    <?php do_action('hd_settings_api_page_after', $this->hook_suffix, $this->options, $this->fields); ?>
+                    <?php do_action('hd_settings_api_page_after', $this->hookSuffix, $this->options, $this->fields); ?>
 
                     <div class="clear"></div>
 
@@ -415,9 +423,9 @@ if (!class_exists('HD_WP_Settings_API')) :
          *
          * @param array $args Section Options
          *
-         * @return null
+         * @return void
          */
-        function print_section($args)
+        public function showSection($args)
         {
             if (isset($this->fields[$args['id']]['desc'])) {
                 echo $this->fields[$args['id']]['desc'];
@@ -431,7 +439,7 @@ if (!class_exists('HD_WP_Settings_API')) :
          *
          * @return mixed            Sanitized value
          */
-        function sanitize_setting($new_value)
+        public function sanitizeSetting($new_value)
         {
             $setting = str_replace('sanitize_option_', '', current_filter());
 
@@ -463,7 +471,7 @@ if (!class_exists('HD_WP_Settings_API')) :
                     break;
 
                 case 'color' :
-                    return $this->sanitize_hex_color($new_value);
+                    return $this->sanitizeHexColor($new_value);
                     break;
 
                 case 'html' :
@@ -495,7 +503,7 @@ if (!class_exists('HD_WP_Settings_API')) :
          *
          * @return mixed         Sanitized Hex Color or null
          */
-        function sanitize_hex_color($color)
+        public function sanitizeHexColor($color)
         {
             if ('' === $color) {
                 return '';
@@ -508,6 +516,6 @@ if (!class_exists('HD_WP_Settings_API')) :
             return null;
         }
 
-    } // HD_WP_Settings_API end
+    } // SettingsAPI end
 
 endif; // class_exists check
