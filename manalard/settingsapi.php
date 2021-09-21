@@ -114,15 +114,32 @@ if (!class_exists('Manalard\SettingsAPI')) :
         /**
          * Constructor
          *
-         * @param array $options
+         * @param array $options Array containing the necessary params.
+         *    $options = [
+         *      'page_title'    => (string) Page Title. Required
+         *      'menu_title'    => (string) Menu Title. Required
+         *      'menu_slug'     => (string) Menu Slug. Required
+         *      'parent_slug'   => (string) Parent Slug.
+         *      'capability'    => (string)
+         *      'icon'          => (string)
+         *      'position'      => (int)
+         *    ]
          * @param array $fields
          *
-         * @return null
+         * @return bool
          */
-        function __construct($options = [], $fields = [])
+        public function __construct($options = [], $fields = [])
         {
+            $this->options = $this->getOptions($options);
+
+            extract($this->options);
+            // Titles and slugs should not be empty
+            if (empty($page_title) || empty($menu_title) || empty($menu_slug)) {
+                return false;
+            }
+
             // Set directory path
-            $this->dirPath = str_replace('\\', '/', dirname(__FILE__));
+            $this->dirPath = str_replace('\\', '/', __DIR__);
 
             // Set directory uri
             $this->dirUri = trailingslashit(home_url()) . str_replace(
@@ -131,6 +148,15 @@ if (!class_exists('Manalard\SettingsAPI')) :
                     $this->dirPath
                 );
 
+            $this->fields = (array)$fields;
+
+            $this->htmlHelper = class_exists('Manalard\Helpers') ? new Helpers() : false;
+
+            $this->handle();
+        }
+
+        private function getOptions($options)
+        {
             // Default page options
             $options_default = [
                 'page_title'  => '',
@@ -142,20 +168,7 @@ if (!class_exists('Manalard\SettingsAPI')) :
                 'position'    => null,
             ];
 
-            $this->options = wp_parse_args($options, $options_default);
-
-            extract($this->options);
-
-            // Titles and slugs should not be empty
-            if (empty($page_title) || empty($menu_title) || empty($menu_slug)) {
-                return false;
-            }
-
-            $this->fields = (array)$fields;
-
-            $this->htmlHelper = class_exists('Manalard\Helpers') ? new Helpers() : false;
-
-            $this->handle();
+            return wp_parse_args($options, $options_default);
         }
 
         public function handle()
