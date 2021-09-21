@@ -34,6 +34,11 @@ License URI: http://www.opensource.org/licenses/gpl-license.php
 
 namespace Manalard;
 
+use \Illuminate\Support\Collection;
+use function collect;
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
 require_once('helpers.php');
 
 if (!class_exists('Manalard\SettingsAPI')) :
@@ -132,9 +137,9 @@ if (!class_exists('Manalard\SettingsAPI')) :
         {
             $this->options = $this->getOptions($options);
 
-            extract($this->options);
+            extract($this->options->all());
             // Titles and slugs should not be empty
-            if (empty($page_title) || empty($menu_title) || empty($menu_slug)) {
+            if (empty($page_title) || empty($menu_title)) {
                 return false;
             }
 
@@ -155,6 +160,11 @@ if (!class_exists('Manalard\SettingsAPI')) :
             $this->handle();
         }
 
+        /**
+         * @param $options
+         *
+         * @return Collection
+         */
         private function getOptions($options)
         {
             // Default page options
@@ -168,9 +178,19 @@ if (!class_exists('Manalard\SettingsAPI')) :
                 'position'    => null,
             ];
 
-            return wp_parse_args($options, $options_default);
+            $options = collect(wp_parse_args($options, $options_default));
+
+            if (empty($options->get('menu_slug'))) {
+                $menu_slug = sanitize_title($options->get('menu_title'));
+                $options->put('menu_slug', $menu_slug);
+            }
+
+            return $options;
         }
 
+        /**
+         *
+         */
         public function handle()
         {
             add_action('admin_menu', [$this, 'registerMenu']);
@@ -209,7 +229,7 @@ if (!class_exists('Manalard\SettingsAPI')) :
                 }
             }
 
-            extract($this->options);
+            extract($this->options->all());
 
             if (empty($parent_slug)) {
                 $this->hookSuffix = add_menu_page(
