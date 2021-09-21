@@ -1,0 +1,12 @@
+{
+    "name": "batur/class",
+    "require": {
+        "illuminate/collections": "^8.61"
+    },
+    "authors": [
+        {
+            "name": "Batur",
+            "email": "batisonline@gmail.com"
+        }
+    ]
+}
