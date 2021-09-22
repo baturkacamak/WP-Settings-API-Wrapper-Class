@@ -2,6 +2,9 @@
 
 namespace Manalard;
 
+use Manalard\Core\OptionType;
+use ReflectionClass;
+
 if (!class_exists('Manalard\Helpers')) :
     /**
      * Class Helpers
@@ -16,6 +19,9 @@ if (!class_exists('Manalard\Helpers')) :
      */
     class Helpers
     {
+
+        protected $optionTypes;
+
         /**
          * Returns the Form Table html
          *
@@ -94,11 +100,21 @@ if (!class_exists('Manalard\Helpers')) :
 
             $field = wp_parse_args($field, $field_default);
 
-            $input_html = '';
+            $option_type = ucfirst($field['type']);
 
-            if (is_callable([$this, $field['type'] . '_input'])) {
-                $input_html .= call_user_func([$this, $field['type'] . '_input'], $field);
+            if (!isset($this->optionTypes[$option_type])) {
+                $class_name = "\Manalard\OptionTypes\\$option_type";
+
+                if (!class_exists($class_name)) {
+                    throw new \Exception("{$option_type} not found");
+                }
+
+                $reflection_class                = new ReflectionClass($class_name);
+                $this->optionTypes[$option_type] = $reflection_class->newInstance();
             }
+
+            return $this->optionTypes[$option_type]->render($field);
+
 
             if ($show_help && 'checkbox' !== $field['type']) {
                 $input_html .= $this->getHelpText($field);

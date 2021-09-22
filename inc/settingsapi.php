@@ -35,6 +35,7 @@ License URI: http://www.opensource.org/licenses/gpl-license.php
 namespace Manalard;
 
 use \Illuminate\Support\Collection;
+
 use function collect;
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -129,16 +130,15 @@ if (!class_exists('Manalard\SettingsAPI')) :
          *      'icon'          => (string)
          *      'position'      => (int)
          *    ]
-         * @param array $fields
          *
          * @return bool
          */
-        public function __construct($options = [], $fields = [])
+        public function __construct($options = [])
         {
             $this->options = $this->getOptions($options);
 
             extract($this->options->all());
-            // Titles and slugs should not be empty
+            // Titles should not be empty
             if (empty($page_title) || empty($menu_title)) {
                 return false;
             }
@@ -152,8 +152,6 @@ if (!class_exists('Manalard\SettingsAPI')) :
                     '',
                     $this->dirPath
                 );
-
-            $this->fields = (array)$fields;
 
             $this->htmlHelper = class_exists('Manalard\Helpers') ? new Helpers() : false;
 
@@ -218,11 +216,11 @@ if (!class_exists('Manalard\SettingsAPI')) :
             if (!empty($this->tabs)) {
                 if (isset($_GET['tab']) && array_key_exists($_GET['tab'], (array)$this->tabs)) {
                     $this->activeTab = $_GET['tab'];
-                } elseif (isset($_REQUEST[$this->options['menu_slug'] . '_active_tab']) && array_key_exists(
-                        $_REQUEST[$this->options['menu_slug'] . '_active_tab'],
+                } elseif (isset($_REQUEST[$this->options->get('menu_slug') . '_active_tab']) && array_key_exists(
+                        $_REQUEST[$this->options->get('menu_slug') . '_active_tab'],
                         (array)$this->tabs
                     )) {
-                    $this->activeTab = $_REQUEST[$this->options['menu_slug'] . '_active_tab'];
+                    $this->activeTab = $_REQUEST[$this->options->get('menu_slug') . '_active_tab'];
                 } else {
                     $tab_keys        = array_keys((array)$this->tabs);
                     $this->activeTab = reset($tab_keys);
@@ -277,6 +275,15 @@ if (!class_exists('Manalard\SettingsAPI')) :
         }
 
         /**
+         * @param array $fields
+         */
+        public function setFields($fields)
+        {
+            $this->fields = $fields;
+        }
+
+
+        /**
          * Register Sections, Fields and Settings
          *
          * @return void
@@ -299,14 +306,14 @@ if (!class_exists('Manalard\SettingsAPI')) :
                             $field['id'],
                             $field['title'],
                             [$this, 'showSection'],
-                            $this->options['menu_slug']
+                            $this->options->get('menu_slug')
                         );
                     } else {
                         add_settings_section(
                             $field['id'],
                             $field['title'],
                             [$this, 'showSection'],
-                            $this->options['menu_slug'] . '_' . $this->currentTab
+                            $this->options->get('menu_slug') . '_' . $this->currentTab
                         );
                     }
                 } else {
@@ -317,8 +324,8 @@ if (!class_exists('Manalard\SettingsAPI')) :
                         add_settings_field(
                             $field['id'],
                             $field['title'],
-                            [$this->htmlHelper, 'display_field'],
-                            $this->options['menu_slug'],
+                            [$this->htmlHelper, 'displayField'],
+                            $this->options->get('menu_slug'),
                             $this->currentSection,
                             $field
                         );
@@ -326,15 +333,15 @@ if (!class_exists('Manalard\SettingsAPI')) :
                         add_settings_field(
                             $field['id'],
                             $field['title'],
-                            [$this->htmlHelper, 'display_field'],
-                            $this->options['menu_slug'] . '_' . $this->currentTab,
+                            [$this->htmlHelper, 'displayField'],
+                            $this->options->get('menu_slug') . '_' . $this->currentTab,
                             $this->currentSection,
                             $field
                         );
                     }
 
                     if (empty($this->currentTab) || $this->currentTab === $this->activeTab) {
-                        register_setting($this->options['menu_slug'], $field['id'], [$this, 'sanitize_setting']);
+                        register_setting($this->options->get('menu_slug'), $field['id'], [$this, 'sanitize_setting']);
                     }
 
                     if (!empty($field['default'])) {
@@ -357,7 +364,7 @@ if (!class_exists('Manalard\SettingsAPI')) :
                 return;
             }
 
-            if (isset($_GET['page']) && $_GET['page'] === $this->options['menu_slug']) {
+            if (isset($_GET['page']) && $_GET['page'] === $this->options->get('menu_slug')) {
                 settings_errors();
             }
         }
@@ -369,86 +376,37 @@ if (!class_exists('Manalard\SettingsAPI')) :
          */
         public function showSettingsPage()
         {
-            ?>
-            <div class="wrap <?php echo sanitize_html_class($this->options['menu_slug']); ?>">
+            $this->render('settings-page', [], true);
+        }
 
-                <h2><?php echo esc_html($this->options['page_title']); ?></h2>
+        /**
+         * Render the specified view.
+         *
+         * @param string $view
+         * @param array $data
+         * @param mixed $echo
+         *
+         * @return string
+         */
+        protected function render($view = null, $data = [], $echo = false)
+        {
+            if (is_array($view) && empty($data)) {
+                $data = $view;
+                $view = null;
+            }
 
-                <form action="<?php echo admin_url('options.php') ?>"
-                      method="post"
-                >
+            if (empty($data)) {
+                $data = $this->options->all();
+            }
 
-                    <?php settings_fields($this->options['menu_slug']); ?>
-
-                    <?php do_action(
-                        'hd_settings_api_page_before',
-                        $this->hookSuffix,
-                        $this->options,
-                        $this->fields
-                    ); ?>
-
-                    <table class="form-table">
-                        <?php do_settings_fields($this->options['menu_slug'], 'default'); ?>
-                    </table>
-
-                    <?php do_settings_sections($this->options['menu_slug']); ?>
-
-                    <?php if (!empty($this->tabs)) { ?>
-                        <h2 class="nav-tab-wrapper">
-                            <?php
-                            foreach ((array)$this->tabs as $tab_id => $tab_name) {
-                                printf(
-                                    '<a href="%s" class="nav-tab%s">%s</a>',
-                                    add_query_arg(['page' => $this->options['menu_slug'], 'tab' => $tab_id]),
-                                    ($this->activeTab === $tab_id) ? ' nav-tab-active' : '',
-                                    esc_html($tab_name)
-                                );
-                            }
-                            ?>
-                        </h2>
-
-                        <?php do_action(
-                            'hd_settings_api_tab_before',
-                            $this->hookSuffix,
-                            $this->activeTab,
-                            $this->options,
-                            $this->fields
-                        ); ?>
-
-                        <table class="form-table">
-                            <?php do_settings_fields(
-                                $this->options['menu_slug'] . '_' . $this->activeTab,
-                                'default'
-                            ); ?>
-                        </table>
-
-                        <?php do_settings_sections($this->options['menu_slug'] . '_' . $this->activeTab); ?>
-
-                        <?php do_action(
-                            'hd_settings_api_tab_after',
-                            $this->hookSuffix,
-                            $this->activeTab,
-                            $this->options,
-                            $this->fields
-                        ); ?>
-
-                        <input type="hidden"
-                               name="<?php echo esc_attr($this->options['menu_slug'] . '_active_tab'); ?>"
-                               value="<?php echo esc_attr($this->activeTab); ?>"
-                        />
-
-                    <?php } ?>
-
-                    <?php do_action('hd_settings_api_page_after', $this->hookSuffix, $this->options, $this->fields); ?>
-
-                    <div class="clear"></div>
-
-                    <?php submit_button(apply_filters('hd_settings_api_save_button_text', __('Save Changes'))); ?>
-
-                </form>
-
-            </div>
-            <?php
+            extract($data);
+            ob_start();
+            include trailingslashit(__DIR__) . "../resources/views/{$view}.php";
+            if ($echo) {
+                echo ob_get_clean();
+            } else {
+                return ob_get_clean();
+            }
         }
 
         /**
