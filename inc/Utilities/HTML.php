@@ -1,13 +1,12 @@
 <?php
 
-namespace Manalard;
+namespace Manalard\Utilities;
 
-use Manalard\Core\OptionType;
 use ReflectionClass;
 
-if (!class_exists('Manalard\Helpers')) :
+if (!class_exists('Manalard\Utilities\HTML')) :
     /**
-     * Class Helpers
+     * Class Manalard\Utilities\HTML
      *
      * a Simple HTML Helper Class to generate form field.
      * @version 1.0.1
@@ -17,7 +16,7 @@ if (!class_exists('Manalard\Helpers')) :
      * @link    https://github.com/baturkacamak
      * @package Manalard
      */
-    class Helpers
+    class HTML
     {
 
         protected $optionTypes;
@@ -112,6 +111,7 @@ if (!class_exists('Manalard\Helpers')) :
                 $reflection_class                = new ReflectionClass($class_name);
                 $this->optionTypes[$option_type] = $reflection_class->newInstance();
             }
+
 
             return $this->optionTypes[$option_type]->render($field);
 

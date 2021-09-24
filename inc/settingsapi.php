@@ -36,11 +36,11 @@ namespace Manalard;
 
 use \Illuminate\Support\Collection;
 
+use Manalard\Utilities\HTML;
+
 use function collect;
 
 require_once __DIR__ . '/../vendor/autoload.php';
-
-require_once('helpers.php');
 
 if (!class_exists('Manalard\SettingsAPI')) :
     /**
@@ -135,6 +135,7 @@ if (!class_exists('Manalard\SettingsAPI')) :
          */
         public function __construct($options = [])
         {
+            $this->includes();
             $this->options = $this->getOptions($options);
 
             extract($this->options->all());
@@ -153,7 +154,7 @@ if (!class_exists('Manalard\SettingsAPI')) :
                     $this->dirPath
                 );
 
-            $this->htmlHelper = class_exists('Manalard\Helpers') ? new Helpers() : false;
+            $this->htmlHelper = class_exists('Manalard\Utilities\HTML') ? new HTML() : false;
 
             $this->handle();
         }
@@ -197,6 +198,10 @@ if (!class_exists('Manalard\SettingsAPI')) :
             add_action('admin_notices', [$this, 'showNotices']);
         }
 
+        private function includes()
+        {
+            include_once 'Utilities/General.php';
+        }
 
         /**
          * Register a New Menu Page
@@ -401,7 +406,8 @@ if (!class_exists('Manalard\SettingsAPI')) :
 
             extract($data);
             ob_start();
-            include trailingslashit(__DIR__) . "../resources/views/{$view}.php";
+            $include_file = trailingslashit(__DIR__) . "../resources/views/{$view}.php";
+            include $include_file;
             if ($echo) {
                 echo ob_get_clean();
             } else {
