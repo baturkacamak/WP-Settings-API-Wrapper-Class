@@ -13,5 +13,8 @@
     "psr-4": {
       "Manalard\\": "inc/"
     }
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.5"
   }
 }
