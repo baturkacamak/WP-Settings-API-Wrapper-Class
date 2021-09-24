@@ -17,7 +17,7 @@ abstract class OptionType
         $html_attr = '';
 
         foreach ($atts as $attr_name => $attr_val) {
-            if (false === $attr_val) {
+            if (false === $attr_val || empty($attr_val)) {
                 continue;
             }
 
