@@ -14,7 +14,10 @@ class Textarea extends \Manalard\Core\OptionType
 
     protected function renderItem($options)
     {
-        return "<textarea {$this->attsToHtml($options['atts'])}>{$options['value']}</textarea>";
+        $value = $options['atts']['value'];
+        unset($options['atts']['value']);
+
+        return "<textarea {$this->attsToHtml($options['atts'])}>{$value}</textarea>";
     }
 
     protected function getDefaults()
